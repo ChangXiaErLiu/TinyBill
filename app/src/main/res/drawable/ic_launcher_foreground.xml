@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 绿色背景圆形 -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M54,4 A50,50 0 1,1 53.99,4 Z" />
+    <!-- 外圈金边 -->
+    <path
+        android:fillColor="#059669"
+        android:pathData="M54,18 A36,36 0 1,1 53.99,18 Z" />
+    <!-- 白色内圈 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,24 A30,30 0 1,1 53.99,24 Z" />
+    <!-- 中心方孔 -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M46,48 L62,48 L62,60 L46,60 Z" />
+    <!-- $符号 -->
+    <path
+        android:fillColor="#10B981"
+        android:strokeWidth="3"
+        android:strokeColor="#10B981"
+        android:pathData="M54,32 L54,76 M44,40 Q54,35 64,40 M64,68 Q54,75 44,68" />
+</vector>

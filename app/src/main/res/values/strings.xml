@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">微账</string>
+    <string name="widget_description">快速查看今日和本月支出</string>
+    <string name="accessibility_service_description">微账需要无障碍服务来自动识别微信和支付宝的支付成功页面，提取金额和商户信息。您的数据仅存储在本地，不会上传到任何服务器。</string>
+    <string name="service_notification_title">微账记账服务</string>
+    <string name="service_notification_text">记账服务正在后台运行</string>
+    <string name="about_project_url" translatable="false">https://github.com/tinybill/tinybill</string>
+</resources>
