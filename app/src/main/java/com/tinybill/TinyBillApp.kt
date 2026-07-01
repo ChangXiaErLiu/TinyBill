@@ -6,6 +6,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.tinybill.di.appModules
 import com.tinybill.util.GlobalExceptionHandler
+import com.tinybill.util.NotificationHelper
 import com.tinybill.util.ScheduledTransactionWorker
 import com.tinybill.util.SettingsManager
 import org.koin.android.ext.koin.androidContext
@@ -23,6 +24,9 @@ class TinyBillApp : Application() {
 
         lateinit var settingsManager: SettingsManager
             private set
+
+        /** Widget 快捷记账待处理动作：Pair(isExpense, isHandled) */
+        var pendingQuickAddAction: Pair<Boolean, Boolean>? = null
     }
 
     override fun onCreate() {
@@ -30,6 +34,7 @@ class TinyBillApp : Application() {
         instance = this
 
         GlobalExceptionHandler.install(this)
+        NotificationHelper.init(this)
 
         startKoin {
             androidLogger(Level.ERROR)

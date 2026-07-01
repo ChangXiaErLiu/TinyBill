@@ -15,10 +15,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 object ExportManager {
-    
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+
     private val fileNameDateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-    
+
     suspend fun exportTransactions(
         context: Context,
         transactions: List<Transaction>,
@@ -28,24 +27,24 @@ object ExportManager {
             val inTimeRange = if (options.startTime != null && options.endTime != null) {
                 transaction.timestamp in options.startTime..options.endTime
             } else true
-            
+
             val inCategories = options.categories?.contains(transaction.category) ?: true
             val inTypes = options.types?.contains(transaction.type) ?: true
-            
+
             inTimeRange && inCategories && inTypes
         }
-        
+
         val timestamp = System.currentTimeMillis()
         val fileName = "tinybill_export_${fileNameDateFormat.format(Date(timestamp))}"
-        
+
         val result = when (options.format) {
             ExportFormat.CSV -> exportToCsv(context, filtered, fileName, options, timestamp)
             ExportFormat.JSON -> exportToJson(context, filtered, fileName, options, timestamp)
         }
-        
+
         result
     }
-    
+
     private suspend fun exportToCsv(
         context: Context,
         transactions: List<Transaction>,
@@ -56,10 +55,12 @@ object ExportManager {
         val documentsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
             ?: context.filesDir
         val file = File(documentsDir, "$fileName.csv")
-        
+
         FileWriter(file).use { writer ->
-            writer.append("日期,时间,类型,商户,分类,金额,备注,来源\n")
-            
+            // 带 BOM 的 UTF-8 表头，确保 Excel 正确识别中文
+            writer.append('\uFEFF')
+            writer.append("日期,时间,类型,商户,分类,金额,备注,来源,交易ID\n")
+
             transactions.forEach { transaction ->
                 val date = Date(transaction.timestamp)
                 val typeStr = if (transaction.type == Transaction.TYPE_EXPENSE) "支出" else "收入"
@@ -68,9 +69,11 @@ object ExportManager {
                     Transaction.SOURCE_MANUAL -> "手动添加"
                     else -> "未知"
                 }
-                
+
                 val line = buildString {
-                    append(dateFormat.format(date).replace(",", ";"))
+                    append(FormatUtils.formatYmd(transaction.timestamp))
+                    append(",")
+                    append(FormatUtils.formatMdHm(transaction.timestamp))
                     append(",")
                     append(typeStr)
                     append(",")
@@ -80,15 +83,17 @@ object ExportManager {
                     append(",")
                     append(String.format("%.2f", transaction.amount))
                     append(",")
-                    append("\"${(transaction.note ?: "").replace("\"", "\"\"")}\"")
+                    append("\"${(transaction.note.ifEmpty { "" }).replace("\"", "\"\"")}\"")
                     append(",")
                     append(sourceStr)
+                    append(",")
+                    append(transaction.id.toString())
                     append("\n")
                 }
                 writer.append(line)
             }
         }
-        
+
         ExportResult(
             filePath = file.absolutePath,
             recordCount = transactions.size,
@@ -96,7 +101,7 @@ object ExportManager {
             endTime = options.endTime ?: timestamp
         )
     }
-    
+
     private suspend fun exportToJson(
         context: Context,
         transactions: List<Transaction>,
@@ -107,20 +112,21 @@ object ExportManager {
         val documentsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
             ?: context.filesDir
         val file = File(documentsDir, "$fileName.json")
-        
+
         val exportData = ExportData(
-            exportTime = timestamp,
+            exportTime = FormatUtils.formatYmdHm(timestamp),
+            appVersion = "1.0.0",
             recordCount = transactions.size,
             transactions = transactions.map { it.toExportRecord() }
         )
-        
+
         val gson = GsonBuilder()
             .setPrettyPrinting()
             .setDateFormat("yyyy-MM-dd HH:mm:ss")
             .create()
-        
+
         File(file.absolutePath).writeText(gson.toJson(exportData))
-        
+
         ExportResult(
             filePath = file.absolutePath,
             recordCount = transactions.size,
@@ -128,11 +134,11 @@ object ExportManager {
             endTime = options.endTime ?: timestamp
         )
     }
-    
+
     private fun Transaction.toExportRecord() = ExportRecord(
         id = this.id,
         timestamp = this.timestamp,
-        dateStr = dateFormat.format(Date(this.timestamp)),
+        dateStr = FormatUtils.formatYmdHm(this.timestamp),
         type = if (this.type == Transaction.TYPE_EXPENSE) "expense" else "income",
         merchant = this.merchant,
         category = this.category,
@@ -147,7 +153,8 @@ object ExportManager {
 }
 
 private data class ExportData(
-    val exportTime: Long,
+    val exportTime: String,
+    val appVersion: String,
     val recordCount: Int,
     val transactions: List<ExportRecord>
 )

@@ -26,12 +26,12 @@ import com.tinybill.presentation.viewmodel.TransactionListViewModel
 import com.tinybill.ui.components.*
 import com.tinybill.ui.components.designsystem.*
 import com.tinybill.ui.theme.SuccessColor
+import com.tinybill.util.FormatUtils
 import com.tinybill.util.HapticManager
 import org.koin.androidx.compose.koinViewModel
-import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TransactionListScreen(
     viewModel: TransactionListViewModel = koinViewModel(),
@@ -132,30 +132,28 @@ fun TransactionListScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 无障碍权限状态条：未开启时显示，点击跳转到无障碍设置
-            AccessibilityStatusBanner()
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 自动记账摘要条：根据 ParserStats 实时反馈"自动记了 N 笔"
-            // 与 AccessibilityStatusBanner 是互斥的：未开启无障碍时是黄色警告，
-            // 已开启时根据成功率显示绿/黄/红。
-            AutoBillSummaryBanner()
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Budget Card
-            if (effectiveBudget > 0) {
-                BudgetCard(
-                    budget = effectiveBudget,
-                    spent = currentMonthExpense,
-                    onClick = { appStateManager.showBudgetSettings() }
-                )
                 Spacer(modifier = Modifier.height(16.dp))
-            }
-            
-            // Transaction List
-            when (val state = uiState) {
+
+                // 无障碍权限状态条：未开启时显示，点击跳转到无障碍设置
+                AccessibilityStatusBanner()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 自动记账摘要条：根据 ParserStats 实时反馈"自动记了 N 笔"
+                AutoBillSummaryBanner()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Budget Card
+                if (effectiveBudget > 0) {
+                    BudgetCard(
+                        budget = effectiveBudget,
+                        spent = currentMonthExpense,
+                        onClick = { appStateManager.showBudgetSettings() }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // Transaction List
+                when (val state = uiState) {
                 is TransactionListViewModel.TransactionListUiState.Loading -> {
                     TransactionListSkeleton(itemCount = 5)
                 }
@@ -199,7 +197,8 @@ fun TransactionListScreen(
                                 SwipeToDeleteTransactionCard(
                                     transaction = transaction,
                                     onDelete = onDelete,
-                                    onClick = onClick
+                                    onClick = onClick,
+                                    modifier = Modifier.animateItemPlacement()
                                 )
                             }
                         }
@@ -215,7 +214,7 @@ fun TransactionListScreen(
                 }
             }
         }
-        
+
         // Quick Add Bottom Sheet
         if (showQuickAdd) {
             QuickAddScreen(
@@ -438,7 +437,7 @@ fun TransactionCard(
             // Amount
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${if (isExpense) "-" else "+"}¥${String.format("%.2f", transaction.amount)}",
+                    text = FormatUtils.formatAmount(transaction.amount, showSign = true, isExpense = transaction.type == Transaction.TYPE_EXPENSE),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isExpense) MaterialTheme.colorScheme.error else SuccessColor
@@ -498,9 +497,5 @@ private fun getCategoryColor(category: String): Color {
 }
 
 private fun formatDate(timestamp: Long): String {
-    return DateFormatters.SHORT_DATE_TIME.format(Date(timestamp))
-}
-
-private object DateFormatters {
-    val SHORT_DATE_TIME = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
+    return FormatUtils.formatMdHm(timestamp)
 }

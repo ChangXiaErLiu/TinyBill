@@ -36,8 +36,6 @@ import java.util.Calendar
 class TinyBillWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // 通过 ServiceLocator 复用 Repository 单例，避免每次 Widget 刷新
-        // 都新建 Repository（连带打开 Room 的 dao 引用）
         val repository = ServiceLocator.getTransactionRepository(context)
 
         val calendar = Calendar.getInstance()
@@ -59,6 +57,14 @@ class TinyBillWidget : GlanceAppWidget() {
     }
 }
 
+/** Widget 快捷记账 Action 常量 */
+object WidgetActions {
+    const val ACTION_QUICK_EXPENSE = "com.tinybill.QUICK_EXPENSE"
+    const val ACTION_QUICK_INCOME = "com.tinybill.QUICK_INCOME"
+    const val EXTRA_CATEGORY = "extra_category"
+    const val EXTRA_AMOUNT = "extra_amount"
+}
+
 @Composable
 private fun WidgetContent(
     todayExpense: Double,
@@ -66,35 +72,46 @@ private fun WidgetContent(
     todayCount: Int,
     context: Context
 ) {
-    val activityIntent = Intent(context, MainActivity::class.java).apply {
+    val openAppIntent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
     }
-    
+    val quickExpenseIntent = Intent(context, MainActivity::class.java).apply {
+        action = WidgetActions.ACTION_QUICK_EXPENSE
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+    val quickIncomeIntent = Intent(context, MainActivity::class.java).apply {
+        action = WidgetActions.ACTION_QUICK_INCOME
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+
     val white = ColorProvider(Color.White)
     val green = ColorProvider(Color(0xFF10B981))
-    
+    val darkGreen = ColorProvider(Color(0xFF059669))
+
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(green)
-            .padding(16.dp)
-            .clickable(actionStartActivity(activityIntent)),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(12.dp),
+        verticalAlignment = Alignment.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "微账",
-            style = TextStyle(
-                color = white,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-        )
-        
-        Spacer(modifier = GlanceModifier.height(8.dp))
-        
+        // App 名称 + 数据概览
         Row(
-            modifier = GlanceModifier.fillMaxWidth(),
+            modifier = GlanceModifier.fillMaxWidth().clickable(actionStartActivity(openAppIntent)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "微账",
+                style = TextStyle(color = white, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            )
+        }
+
+        Spacer(modifier = GlanceModifier.height(6.dp))
+
+        Row(
+            modifier = GlanceModifier.fillMaxWidth().clickable(actionStartActivity(openAppIntent)),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -102,53 +119,72 @@ private fun WidgetContent(
                 modifier = GlanceModifier.defaultWeight(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(text = "今日", style = TextStyle(color = white, fontSize = 10.sp))
                 Text(
-                    text = "今日支出",
-                    style = TextStyle(
-                        color = white,
-                        fontSize = 12.sp
-                    )
+                    text = "¥${String.format("%.0f", todayExpense)}",
+                    style = TextStyle(color = white, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 )
-                Text(
-                    text = "¥${String.format("%.2f", todayExpense)}",
-                    style = TextStyle(
-                        color = white,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                Text(
-                    text = "${todayCount}笔",
-                    style = TextStyle(
-                        color = white,
-                        fontSize = 10.sp
-                    )
-                )
+                Text(text = "${todayCount}笔", style = TextStyle(color = white, fontSize = 9.sp))
             }
-            
-            Spacer(modifier = GlanceModifier.width(16.dp))
-            
             Column(
                 modifier = GlanceModifier.defaultWeight(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(text = "本月", style = TextStyle(color = white, fontSize = 10.sp))
                 Text(
-                    text = "本月支出",
-                    style = TextStyle(
-                        color = white,
-                        fontSize = 12.sp
-                    )
-                )
-                Text(
-                    text = "¥${String.format("%.2f", monthExpense)}",
-                    style = TextStyle(
-                        color = white,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    text = "¥${String.format("%.0f", monthExpense)}",
+                    style = TextStyle(color = white, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 )
             }
         }
+
+        Spacer(modifier = GlanceModifier.height(8.dp))
+
+        // 快捷记账按钮行
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 快速记一笔支出（20 元，餐饮）
+            QuickAddButton(
+                text = "🍜 记一笔",
+                onClick = actionStartActivity(quickExpenseIntent),
+                modifier = GlanceModifier.defaultWeight()
+            )
+            Spacer(modifier = GlanceModifier.width(8.dp))
+            // 快速记一笔收入
+            QuickAddButton(
+                text = "💰 记收入",
+                onClick = actionStartActivity(quickIncomeIntent),
+                modifier = GlanceModifier.defaultWeight()
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickAddButton(
+    text: String,
+    onClick: androidx.glance.action.Action,
+    modifier: GlanceModifier = GlanceModifier
+) {
+    val white = ColorProvider(Color.White)
+    val semiWhite = ColorProvider(Color.White.copy(alpha = 0.85f))
+
+    Column(
+        modifier = modifier
+            .padding(horizontal = 4.dp)
+            .background(ColorProvider(androidx.compose.ui.graphics.Color(0x33FFFFFF)))
+            .clickable(onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = TextStyle(color = white, fontSize = 11.sp, fontWeight = FontWeight.Medium),
+            modifier = GlanceModifier.padding(8.dp)
+        )
     }
 }
 

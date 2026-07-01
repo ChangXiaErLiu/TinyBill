@@ -3,12 +3,14 @@ package com.tinybill.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tinybill.data.entity.Transaction
+import com.tinybill.data.repository.BudgetRepository
 import com.tinybill.data.repository.TransactionRepository
 import com.tinybill.domain.model.AppException
 import com.tinybill.domain.model.Result
 import com.tinybill.domain.usecase.transaction.AddTransactionUseCase
 import com.tinybill.domain.usecase.transaction.SearchTransactionsUseCase
 import com.tinybill.domain.usecase.transaction.UpdateTransactionUseCase
+import com.tinybill.util.NotificationHelper
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -38,6 +42,7 @@ class TransactionListViewModel(
     private val updateTransactionUseCase: UpdateTransactionUseCase,
     private val searchTransactionsUseCase: SearchTransactionsUseCase,
     private val repository: TransactionRepository,
+    private val budgetRepository: BudgetRepository,
 ) : ViewModel() {
 
     fun getRepository(): TransactionRepository = repository
@@ -105,9 +110,36 @@ class TransactionListViewModel(
     private fun addTransaction(transaction: Transaction) {
         viewModelScope.launch {
             when (val result = addTransactionUseCase(transaction)) {
-                is Result.Success -> _events.emit(TransactionListEvent.ShowMessage("保存成功"))
+                is Result.Success -> {
+                    _events.emit(TransactionListEvent.ShowMessage("保存成功"))
+                    // 成功后检查该分类的预算是否超限，发送通知
+                    checkBudgetAlert(transaction)
+                }
                 is Result.Error -> _events.emit(TransactionListEvent.ShowError(result.exception.message ?: "保存失败"))
             }
+        }
+    }
+
+    private suspend fun checkBudgetAlert(transaction: Transaction) {
+        if (transaction.type != Transaction.TYPE_EXPENSE) return
+        // 注意：categoryBudgets 是 Flow<List<CategoryBudget>>，
+        // .first() 拿到 List，再用 .firstOrNull(predicate) 按名字查找。
+        val categoryBudget = budgetRepository.categoryBudgets.first()
+            .firstOrNull { it.category == transaction.category } ?: return
+        val spent = repository.getCategoryExpense(
+            java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+            java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1,
+            transaction.category
+        ) ?: 0.0
+        val percentage = if (categoryBudget.budget > 0) (spent / categoryBudget.budget * 100).toFloat() else 0f
+        if (percentage >= 80) {
+            NotificationHelper.sendBudgetAlert(
+                context = com.tinybill.TinyBillApp.instance,
+                category = transaction.category,
+                spent = spent,
+                limit = categoryBudget.budget,
+                percentage = percentage
+            )
         }
     }
 
