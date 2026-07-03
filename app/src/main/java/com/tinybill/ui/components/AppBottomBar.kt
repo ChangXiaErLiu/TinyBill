@@ -47,7 +47,11 @@ fun AppBottomBar(
                 selected = selected,
                 onClick = {
                     if (currentRoute != item.route) {
-                        navController.navigate(item.route)
+                        navController.navigate(item.route) {
+                            popUpTo(Screen.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 },
                 icon = {

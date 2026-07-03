@@ -34,7 +34,12 @@ fun QuickAddScreen(
     var selectedAmount by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(Transaction.CATEGORY_FOOD) }
     var isExpense by remember { mutableStateOf(true) }
-    
+    var showValidationError by remember { mutableStateOf(false) }
+
+    val amountValid = selectedAmount.isNotBlank() && selectedAmount.toDoubleOrNull() != null
+    val amountValue = selectedAmount.toDoubleOrNull() ?: 0.0
+    val isSaveEnabled = amountValid && amountValue > 0
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState()
@@ -105,19 +110,31 @@ fun QuickAddScreen(
             )
             
             Spacer(modifier = Modifier.height(16.dp))
-            
+
+            // 验证错误提示
+            if (showValidationError && !isSaveEnabled) {
+                Text(
+                    text = "请输入有效金额",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
+            }
+
             // Save Button
             TinyBillButton(
                 text = "保存",
                 onClick = {
-                    val amount = selectedAmount.toDoubleOrNull() ?: 0.0
-                    if (amount > 0) {
+                    showValidationError = true
+                    if (amountValue > 0) {
                         HapticManager.performSuccess()
-                        onQuickAdd(amount, selectedCategory, isExpense)
+                        onQuickAdd(amountValue, selectedCategory, isExpense)
                         onDismiss()
+                    } else {
+                        HapticManager.performError()
                     }
                 },
-                enabled = selectedAmount.isNotBlank() && selectedAmount.toDoubleOrNull() != null,
+                enabled = isSaveEnabled,
                 modifier = Modifier.fillMaxWidth()
             )
             

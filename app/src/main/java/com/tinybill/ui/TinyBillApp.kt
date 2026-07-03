@@ -15,6 +15,7 @@ import com.tinybill.presentation.state.DialogState
 import com.tinybill.presentation.viewmodel.TransactionListViewModel
 import com.tinybill.service.BillAccessibilityService
 import com.tinybill.ui.screen.OnboardingScreen
+import com.tinybill.ui.screen.QuickAddScreen
 import com.tinybill.util.HapticManager
 import com.tinybill.util.PermissionHelper
 import kotlinx.coroutines.launch
@@ -114,6 +115,31 @@ fun TinyBillAppContent() {
                 PermissionHelper.openAccessibilitySettings(context)
                 scope.launch { shellState.settingsManager.setAccessibilityGuided(true) }
                 showAccessibilityGuide = false
+            }
+        )
+    }
+
+    // Widget 快捷记账：从桌面 Widget 点击"记一笔"直接弹出记账
+    val pendingAction = com.tinybill.TinyBillApp.pendingQuickAddAction
+    if (pendingAction != null && !pendingAction.second) {
+        val (isExpense, _) = pendingAction
+        com.tinybill.TinyBillApp.pendingQuickAddAction = isExpense to true
+        QuickAddScreen(
+            onDismiss = { com.tinybill.TinyBillApp.pendingQuickAddAction = null },
+            onQuickAdd = { amount, category, isExp ->
+                val transaction = com.tinybill.data.entity.Transaction(
+                    amount = amount,
+                    merchant = if (isExp) "桌面记账" else "桌面收入",
+                    category = category,
+                    timestamp = System.currentTimeMillis(),
+                    type = if (isExp) com.tinybill.data.entity.Transaction.TYPE_EXPENSE
+                            else com.tinybill.data.entity.Transaction.TYPE_INCOME,
+                    source = com.tinybill.data.entity.Transaction.SOURCE_MANUAL
+                )
+                viewModel.onEvent(
+                    com.tinybill.presentation.viewmodel.TransactionListViewModel
+                        .TransactionListUserEvent.OnAddTransaction(transaction)
+                )
             }
         )
     }

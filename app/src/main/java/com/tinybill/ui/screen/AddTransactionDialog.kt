@@ -1,5 +1,7 @@
 package com.tinybill.ui.screen
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -72,6 +75,8 @@ fun AddTransactionDialog(
     var timestamp by remember { mutableStateOf(initialTimestamp) }
     var showDatePicker by remember { mutableStateOf(false) }
     var saveAsTemplate by remember { mutableStateOf(false) }
+    var amountTouched by remember { mutableStateOf(false) }
+    var merchantTouched by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // 加载模板推荐（根据当前收支类型过滤）
@@ -141,10 +146,22 @@ fun AddTransactionDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        // Dialog 弹入动画：缩放 + 淡入
+        val animatedScale by animateFloatAsState(
+            targetValue = 1f,
+            animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
+            label = "dialog_scale"
+        )
+
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .wrapContentHeight(),
+                .wrapContentHeight()
+                .graphicsLayer(
+                    scaleX = animatedScale,
+                    scaleY = animatedScale,
+                    alpha = animatedScale
+                ),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -202,6 +219,7 @@ fun AddTransactionDialog(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = {
+                        amountTouched = true
                         if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
                             amount = it
                         }
@@ -212,18 +230,35 @@ fun AddTransactionDialog(
                     prefix = { Text("¥ ", style = MaterialTheme.typography.titleLarge) },
                     textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     shape = RoundedCornerShape(12.dp),
-                    singleLine = true
+                    singleLine = true,
+                    isError = amountTouched && (amount.isBlank() || (amount.toDoubleOrNull() ?: 0.0) <= 0),
+                    supportingText = if (amountTouched && amount.isBlank()) {
+                        { Text("请输入金额", color = MaterialTheme.colorScheme.error) }
+                    } else if (amountTouched && (amount.toDoubleOrNull() ?: 0.0) <= 0) {
+                        { Text("金额必须大于 0", color = MaterialTheme.colorScheme.error) }
+                    } else {
+                        null
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = merchant,
-                    onValueChange = { merchant = it },
+                    onValueChange = {
+                        merchantTouched = true
+                        merchant = it
+                    },
                     label = { Text("商户名称") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    singleLine = true
+                    singleLine = true,
+                    isError = merchantTouched && merchant.isBlank(),
+                    supportingText = if (merchantTouched && merchant.isBlank()) {
+                        { Text("请输入商户名称", color = MaterialTheme.colorScheme.error) }
+                    } else {
+                        null
+                    }
                 )
 
                 // 模板快捷选择（仅非编辑模式且商户名为空时展示 top 模板）

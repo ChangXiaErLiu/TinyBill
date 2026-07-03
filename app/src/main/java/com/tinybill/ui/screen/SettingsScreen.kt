@@ -46,6 +46,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onNavigateToPrivacy: () -> Unit = {},
+    onNavigateToScheduled: () -> Unit = {},
     appStateManager: AppStateManager,
     context: Context,
     customCategoryRepository: CustomCategoryPrefsRepository = remember { CustomCategoryPrefsRepository(context.applicationContext) },
@@ -227,6 +229,29 @@ fun SettingsScreen(
                 }
             }
 
+            // 定期账单
+            item {
+                Text(
+                    text = "定期",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            item {
+                SettingsCard {
+                    SettingsItem(
+                        icon = Icons.Outlined.Schedule,
+                        title = "定期账单",
+                        subtitle = "每月固定日期自动生成账单",
+                        onClick = {
+                            HapticManager.performClick()
+                            onNavigateToScheduled()
+                        }
+                    )
+                }
+            }
+
             // 安全
             item {
                 Text(
@@ -271,6 +296,29 @@ fun SettingsScreen(
                         onClick = {
                             HapticManager.performClick()
                             showAboutDialog(context)
+                        }
+                    )
+                    SettingsItem(
+                        icon = Icons.Outlined.PrivacyTip,
+                        title = "隐私政策",
+                        subtitle = "我们如何保护您的数据",
+                        onClick = {
+                            HapticManager.performClick()
+                            onNavigateToPrivacy()
+                        }
+                    )
+                    SettingsItem(
+                        icon = Icons.Outlined.Share,
+                        title = "分享微账",
+                        subtitle = "推荐给好友",
+                        onClick = {
+                            HapticManager.performClick()
+                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT,
+                                    "推荐一款记账 App「微账」：完全离线、自动记账、简单好用。")
+                            }
+                            context.startActivity(android.content.Intent.createChooser(shareIntent, "分享微账"))
                         }
                     )
                 }

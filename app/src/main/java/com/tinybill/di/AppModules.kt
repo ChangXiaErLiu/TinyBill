@@ -67,6 +67,7 @@ val viewModelModule = module {
             updateTransactionUseCase = get(),
             searchTransactionsUseCase = get(),
             repository = get(),
+            budgetRepository = get(),
         )
     }
 

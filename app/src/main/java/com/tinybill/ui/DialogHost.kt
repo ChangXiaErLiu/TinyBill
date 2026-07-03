@@ -131,6 +131,7 @@ private val dialogRegistry: Map<KClass<out DialogState>, @Composable (DialogStat
         val context = LocalContext.current
         ExportDialog(
             onDismiss = { ctx.appStateManager.hideDialog() },
+            transactionCount = ctx.transactions.size,
             onExport = { options ->
                 ctx.coroutineScope.launch {
                     try {

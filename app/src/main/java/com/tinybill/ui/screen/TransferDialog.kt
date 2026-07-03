@@ -1,5 +1,7 @@
 package com.tinybill.ui.screen
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -8,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -50,10 +53,22 @@ fun TransferDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        // Dialog 弹入动画：缩放 + 淡入
+        val animatedScale by animateFloatAsState(
+            targetValue = 1f,
+            animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
+            label = "dialog_scale"
+        )
+
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .wrapContentHeight(),
+                .wrapContentHeight()
+                .graphicsLayer(
+                    scaleX = animatedScale,
+                    scaleY = animatedScale,
+                    alpha = animatedScale
+                ),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {

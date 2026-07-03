@@ -112,8 +112,34 @@ fun AppNavigation(
             val context = androidx.compose.ui.platform.LocalContext.current
             SettingsScreen(
                 onBack = { navController.popBackStack() },
+                onNavigateToPrivacy = { navController.navigate(Screen.Privacy.route) },
+                onNavigateToScheduled = { navController.navigate(Screen.Scheduled.route) },
                 appStateManager = appStateManager,
                 context = context,
+            )
+        }
+
+        composable(
+            route = Screen.Privacy.route,
+            enterTransition = { slideInHorizontally(animationSpec = slideTransitionSpec) { it } + fadeIn(animationSpec = fadeTransitionSpec) },
+            exitTransition = { slideOutHorizontally(animationSpec = slideTransitionSpec) { it / 3 } + fadeOut(animationSpec = fadeTransitionSpec) },
+            popEnterTransition = { slideInHorizontally(animationSpec = slideTransitionSpec) { -it / 3 } + fadeIn(animationSpec = fadeTransitionSpec) },
+            popExitTransition = { slideOutHorizontally(animationSpec = slideTransitionSpec) { it } + fadeOut(animationSpec = fadeTransitionSpec) }
+        ) {
+            com.tinybill.ui.screen.PrivacyPolicyScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.Scheduled.route,
+            enterTransition = { slideInHorizontally(animationSpec = slideTransitionSpec) { it } + fadeIn(animationSpec = fadeTransitionSpec) },
+            exitTransition = { slideOutHorizontally(animationSpec = slideTransitionSpec) { it / 3 } + fadeOut(animationSpec = fadeTransitionSpec) },
+            popEnterTransition = { slideInHorizontally(animationSpec = slideTransitionSpec) { -it / 3 } + fadeIn(animationSpec = fadeTransitionSpec) },
+            popExitTransition = { slideOutHorizontally(animationSpec = slideTransitionSpec) { it } + fadeOut(animationSpec = fadeTransitionSpec) }
+        ) {
+            com.tinybill.ui.screen.ScheduledTransactionScreen(
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -142,4 +168,9 @@ sealed class Screen(val route: String) {
     data object Statistics : Screen("statistics")
     data object Calendar : Screen("calendar")
     data object Settings : Screen("settings")
+    data object Privacy : Screen("privacy")
+    data object Scheduled : Screen("scheduled")
 }
+
+// Screen sealed class 结束
+// 注意：Settings 中的 onSettingsClick 已改为弹出下拉菜单而非导航到设置页

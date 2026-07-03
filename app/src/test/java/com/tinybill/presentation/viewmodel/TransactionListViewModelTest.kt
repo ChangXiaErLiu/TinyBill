@@ -2,6 +2,7 @@ package com.tinybill.presentation.viewmodel
 
 import com.google.common.truth.Truth.assertThat
 import com.tinybill.data.entity.Transaction
+import com.tinybill.data.repository.BudgetRepository
 import com.tinybill.data.repository.TransactionRepository
 import com.tinybill.domain.model.AppException
 import com.tinybill.domain.model.Result
@@ -41,6 +42,9 @@ class TransactionListViewModelTest {
     @Mock
     private lateinit var repository: TransactionRepository
 
+    @Mock
+    private lateinit var budgetRepository: BudgetRepository
+
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var viewModel: TransactionListViewModel
@@ -63,7 +67,8 @@ class TransactionListViewModelTest {
             addTransactionUseCase = addTransactionUseCase,
             updateTransactionUseCase = updateTransactionUseCase,
             searchTransactionsUseCase = searchTransactionsUseCase,
-            repository = repository
+            repository = repository,
+            budgetRepository = budgetRepository
         )
     }
 

@@ -152,6 +152,27 @@ fun TransactionListScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
+                // 刷新 / 列表概要
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            viewModel.onEvent(TransactionListViewModel.TransactionListUserEvent.OnRefresh)
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "刷新",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("刷新", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+
                 // Transaction List
                 when (val state = uiState) {
                 is TransactionListViewModel.TransactionListUiState.Loading -> {
